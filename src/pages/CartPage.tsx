@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ShoppingBag, ArrowLeft, ArrowRight, Trash2, Plus, Minus, Tag, Check, AlertCircle } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, ArrowRight, Trash2, Plus, Minus, Tag, Check, AlertCircle, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { CakeIllustration } from '../components/common/CakeIllustration';
+import { CakePreview } from '../components/cakeDesigner/CakePreview';
 import { getBakeryConfig } from '../config/bakeryConfig';
 
 interface CartPageProps {
@@ -110,17 +111,27 @@ export function CartPage({ onNavigateToMenu, onProceedToCheckout }: CartPageProp
               className="bg-white rounded-2xl p-4 sm:p-5 border border-[#EADBCE] shadow-xs flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
             >
               <div className="flex gap-4 items-center flex-1 min-w-0">
-                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-[#EADBCE]">
-                  <CakeIllustration
-                    name={item.cakeName}
-                    themeColor={item.themeColor}
-                    imageUrl={item.imageUrl}
-                    aspectRatio="1/1"
-                    showBadge={false}
-                  />
+                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-[#EADBCE] bg-[#FAF7F2] flex items-center justify-center">
+                  {item.customCakeDesign ? (
+                    <CakePreview design={item.customCakeDesign} className="w-full h-full scale-90" />
+                  ) : (
+                    <CakeIllustration
+                      name={item.cakeName}
+                      themeColor={item.themeColor}
+                      imageUrl={item.imageUrl}
+                      aspectRatio="1/1"
+                      showBadge={false}
+                    />
+                  )}
                 </div>
 
                 <div className="min-w-0 flex-1">
+                  {item.customCakeDesign && (
+                    <span className="text-[10px] uppercase font-bold text-[#881337] flex items-center gap-1 mb-0.5">
+                      <Sparkles className="w-3 h-3" />
+                      Custom Design ({item.customCakeDesign.shape})
+                    </span>
+                  )}
                   <h3 className="font-serif text-base font-bold text-[#2A1E17] truncate">
                     {item.cakeName}
                   </h3>
@@ -134,6 +145,11 @@ export function CartPage({ onNavigateToMenu, onProceedToCheckout }: CartPageProp
                     {item.cakeMessage && (
                       <p className="italic text-stone-600 truncate">
                         Message: "{item.cakeMessage}"
+                      </p>
+                    )}
+                    {item.customCakeDesign && item.customCakeDesign.decorations.length > 0 && (
+                      <p className="text-[11px] text-stone-500 truncate">
+                        Toppings: {item.customCakeDesign.decorations.map((d) => d.replace(/_/g, ' ')).join(', ')}
                       </p>
                     )}
                     <p className="text-[11px] text-stone-400">

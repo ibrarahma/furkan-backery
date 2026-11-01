@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ShoppingBag,
   TrendingUp,
@@ -30,14 +30,17 @@ import { Cake, CakeCategory } from '../types/cake';
 import { BakeryConfig, saveBakeryConfig } from '../config/bakeryConfig';
 import {
   getOrders,
+  fetchOrders,
   updateOrderStatus,
   updatePaymentStatus,
   deleteOrder,
   getWhatsAppOrderUrl,
-  getCustomCakeInquiries
+  getCustomCakeInquiries,
+  fetchCustomCakeInquiries
 } from '../services/orderService';
 import {
   getCakes,
+  fetchCakes,
   addCake,
   updateCake,
   deleteCake,
@@ -80,12 +83,52 @@ export function AdminDashboardPage({
 
   // Business Config Form State
   const [configForm, setConfigForm] = useState<BakeryConfig>(config);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Load authenticated data from server
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDashboardData() {
+      setIsLoadingData(true);
+      try {
+        const [ordersData, cakesData, inquiriesData] = await Promise.all([
+          fetchOrders(),
+          fetchCakes(),
+          fetchCustomCakeInquiries()
+        ]);
+        if (isMounted) {
+          setOrders(ordersData);
+          setCakesList(cakesData);
+          setInquiries(inquiriesData);
+        }
+      } catch (err) {
+        console.error('Failed to load authenticated dashboard data:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoadingData(false);
+        }
+      }
+    }
+    loadDashboardData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Refresh lists helper
-  const reloadData = () => {
-    setOrders(getOrders());
-    setCakesList(getCakes());
-    setInquiries(getCustomCakeInquiries());
+  const reloadData = async () => {
+    try {
+      const [ordersData, cakesData, inquiriesData] = await Promise.all([
+        fetchOrders(),
+        fetchCakes(),
+        fetchCustomCakeInquiries()
+      ]);
+      setOrders(ordersData);
+      setCakesList(cakesData);
+      setInquiries(inquiriesData);
+    } catch (err) {
+      console.error('Reload data error:', err);
+    }
   };
 
   // Orders Statistics
@@ -133,70 +176,80 @@ export function AdminDashboardPage({
   }, [orders, orderStatusFilter, orderSearchQuery]);
 
   // Status Handlers
-  const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
-    const res = updateOrderStatus(orderId, newStatus);
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    const res = await updateOrderStatus(orderId, newStatus);
     if (res) {
-      setOrders(getOrders());
+      const refreshed = await fetchOrders();
+      setOrders(refreshed);
       if (selectedOrderModal && selectedOrderModal.orderId === orderId) {
         setSelectedOrderModal(res);
       }
       showToast('Status Updated', `Order ${orderId} is now "${newStatus}"`, 'success');
+    } else {
+      showToast('Update Failed', 'Could not update order status on server', 'error');
     }
   };
 
-  const handlePaymentToggle = (orderId: string, current: PaymentStatus) => {
+  const handlePaymentToggle = async (orderId: string, current: PaymentStatus) => {
     const next: PaymentStatus = current === 'Paid' ? 'Pending' : 'Paid';
-    const res = updatePaymentStatus(orderId, next);
+    const res = await updatePaymentStatus(orderId, next);
     if (res) {
-      setOrders(getOrders());
+      const refreshed = await fetchOrders();
+      setOrders(refreshed);
       showToast('Payment Status', `Marked as ${next}`, 'success');
+    } else {
+      showToast('Update Failed', 'Could not update payment status on server', 'error');
     }
   };
 
-  const handleDeleteOrder = (orderId: string) => {
-    if (window.confirm(`Are you sure you want to delete order ${orderId}?`)) {
-      deleteOrder(orderId);
-      setOrders(getOrders());
+  const handleDeleteOrder = async (orderId: string) => {
+    const ok = await deleteOrder(orderId);
+    if (ok) {
+      const refreshed = await fetchOrders();
+      setOrders(refreshed);
       setSelectedOrderModal(null);
-      showToast('Order Deleted', `Order ${orderId} removed`, 'info');
+      showToast('Order Deleted', `Order ${orderId} removed from server`, 'info');
+    } else {
+      showToast('Delete Failed', 'Could not delete order', 'error');
     }
   };
 
   // Product Handlers
-  const handleToggleProductStock = (cake: Cake) => {
-    const updated = updateCake({ ...cake, inStock: !cake.inStock });
-    setCakesList(getCakes());
+  const handleToggleProductStock = async (cake: Cake) => {
+    const updated = await updateCake({ ...cake, inStock: !cake.inStock });
+    const refreshed = await fetchCakes();
+    setCakesList(refreshed);
     showToast('Catalog Updated', `${updated.name} is now ${updated.inStock ? 'In Stock' : 'Out of Stock'}`, 'info');
   };
 
-  const handleToggleFeatured = (cake: Cake) => {
-    const updated = updateCake({ ...cake, isFeatured: !cake.isFeatured });
-    setCakesList(getCakes());
+  const handleToggleFeatured = async (cake: Cake) => {
+    const updated = await updateCake({ ...cake, isFeatured: !cake.isFeatured });
+    const refreshed = await fetchCakes();
+    setCakesList(refreshed);
     showToast('Catalog Updated', `${updated.name} featured state toggled`, 'info');
   };
 
-  const handleDeleteCake = (id: string, name: string) => {
-    if (window.confirm(`Delete "${name}" from cake menu?`)) {
-      deleteCake(id);
-      setCakesList(getCakes());
+  const handleDeleteCake = async (id: string, name: string) => {
+    const ok = await deleteCake(id);
+    if (ok) {
+      const refreshed = await fetchCakes();
+      setCakesList(refreshed);
       showToast('Cake Deleted', `${name} removed from catalog`, 'info');
     }
   };
 
-  const handleResetCakes = () => {
-    if (window.confirm('Reset catalog to the 14 default artisanal cakes? Custom additions will reset.')) {
-      resetToDefaultCakes();
-      setCakesList(getCakes());
-      showToast('Catalog Reset', 'Default cakes restored', 'success');
-    }
+  const handleResetCakes = async () => {
+    const refreshed = await resetToDefaultCakes();
+    setCakesList(refreshed);
+    showToast('Catalog Reset', 'Default cakes restored', 'success');
   };
 
   // Save Settings
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    saveBakeryConfig(configForm);
+    await saveBakeryConfig(configForm);
     onUpdateConfig(configForm);
-    showToast('Settings Saved', 'Bakery configurations updated successfully.', 'success');
+    showToast('Settings Saved', 'Bakery configurations updated on server.', 'success');
   };
 
   const statusOptions: OrderStatus[] = [
@@ -965,6 +1018,21 @@ export function AdminDashboardPage({
                     <p className="text-stone-500">
                       {item.size} · {item.flavour} · {item.isEggless ? 'Eggless' : 'With Egg'} · Qty: {item.quantity}
                     </p>
+                    {item.customCakeDesign && (
+                      <div className="text-[11px] text-[#881337] mt-0.5 space-y-0.5">
+                        <p>
+                          <strong>Shape:</strong> {item.customCakeDesign.shape} ·{' '}
+                          <strong>Filling:</strong> {item.customCakeDesign.filling} ·{' '}
+                          <strong>Frosting:</strong> {item.customCakeDesign.frostingColorName} {item.customCakeDesign.frosting}
+                        </p>
+                        {item.customCakeDesign.decorations.length > 0 && (
+                          <p>
+                            <strong>Toppings:</strong>{' '}
+                            {item.customCakeDesign.decorations.map((d) => d.replace(/_/g, ' ')).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     {item.cakeMessage && (
                       <p className="text-[#881337] italic">Message: "{item.cakeMessage}"</p>
                     )}
@@ -1018,15 +1086,16 @@ export function AdminDashboardPage({
             setIsAddingCake(false);
             setEditingCake(null);
           }}
-          onSave={(cake) => {
+          onSave={async (cake) => {
             if (editingCake) {
-              updateCake(cake);
+              await updateCake(cake);
               showToast('Updated', `Cake ${cake.name} updated`, 'success');
             } else {
-              addCake(cake);
+              await addCake(cake);
               showToast('Added', `New cake ${cake.name} added`, 'success');
             }
-            setCakesList(getCakes());
+            const refreshed = await fetchCakes();
+            setCakesList(refreshed);
             setIsAddingCake(false);
             setEditingCake(null);
           }}

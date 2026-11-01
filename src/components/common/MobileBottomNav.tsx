@@ -13,7 +13,7 @@ export function MobileBottomNav({ currentPage, onNavigate }: MobileBottomNavProp
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'menu', label: 'Cakes', icon: UtensilsCrossed },
-    { id: 'custom-cake', label: 'Custom', icon: Sparkles },
+    { id: 'cake-designer', label: 'Design', icon: Sparkles },
     { id: 'track-order', label: 'Track', icon: Truck },
   ];
 

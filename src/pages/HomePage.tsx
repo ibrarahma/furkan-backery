@@ -79,10 +79,18 @@ export function HomePage({
               </p>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
+                <button
+                  onClick={() => onNavigate('cake-designer')}
+                  className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-amber-600 to-[#881337] hover:from-amber-700 hover:to-[#6e0f2c] text-white font-bold text-sm rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 group cursor-pointer ring-2 ring-amber-300/40"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-200 group-hover:rotate-12 transition-transform" />
+                  <span>Design Your Own Cake</span>
+                </button>
+
                 <button
                   onClick={() => onNavigate('menu')}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-[#881337] hover:bg-[#6e0f2c] text-white font-semibold text-sm rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 group cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-[#881337] hover:bg-[#6e0f2c] text-white font-semibold text-sm rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 group cursor-pointer"
                 >
                   <span>Order Now</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -90,17 +98,9 @@ export function HomePage({
 
                 <button
                   onClick={() => onNavigate('menu')}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-stone-50 text-[#2A1E17] border border-[#EADBCE] font-semibold text-sm rounded-xl transition-colors cursor-pointer shadow-xs"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-stone-50 text-[#2A1E17] border border-[#EADBCE] font-semibold text-sm rounded-xl transition-colors cursor-pointer shadow-xs"
                 >
-                  View Cakes
-                </button>
-
-                <button
-                  onClick={() => onNavigate('custom-cake')}
-                  className="w-full sm:w-auto px-5 py-3.5 text-stone-700 hover:text-[#881337] font-semibold text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>Custom Design</span>
+                  View Menu
                 </button>
               </div>
 
@@ -108,7 +108,7 @@ export function HomePage({
               <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6 text-xs text-stone-600 border-t border-[#EADBCE]/80">
                 <div className="flex items-center gap-1.5">
                   <Truck className="w-4 h-4 text-[#881337]" />
-                  <span>Same-Day Hyderabad Delivery</span>
+                  <span>Same-Day {config.city} Delivery</span>
                 </div>
                 <span>·</span>
                 <div className="flex items-center gap-1.5">
@@ -306,11 +306,18 @@ export function HomePage({
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
-                onClick={() => onNavigate('custom-cake')}
-                className="px-6 py-3.5 bg-[#881337] hover:bg-[#6e0f2c] text-white font-semibold text-sm rounded-xl transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                onClick={() => onNavigate('cake-designer')}
+                className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-[#881337] hover:from-amber-600 hover:to-[#6e0f2c] text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Request Custom Cake Quote</span>
+                <Sparkles className="w-4 h-4 text-amber-200" />
+                <span>Launch Interactive Cake Designer</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('custom-cake')}
+                className="px-5 py-3.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Upload Custom Cake Quote</span>
               </button>
 
               <a
@@ -319,10 +326,10 @@ export function HomePage({
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="px-5 py-3.5 bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                <MessageCircle className="w-4 h-4 text-[#25D366]" />
-                <span>Chat with Designer</span>
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp Us</span>
               </a>
             </div>
           </div>

@@ -10,13 +10,15 @@ interface MenuPageProps {
   selectedCategory: string;
   onSelectCategory: (category: string) => void;
   onSelectCake: (cake: Cake) => void;
+  onNavigateToDesigner?: () => void;
 }
 
 export function MenuPage({
   cakes,
   selectedCategory,
   onSelectCategory,
-  onSelectCake
+  onSelectCake,
+  onNavigateToDesigner
 }: MenuPageProps) {
   const config = getBakeryConfig();
 
@@ -114,6 +116,35 @@ export function MenuPage({
           Baked fresh for birthdays, anniversaries, and personal treats. Choose weight, flavor, and personalized message on cake details.
         </p>
       </div>
+
+      {/* Prominent "Design Your Own Cake" Interactive Feature Spotlight */}
+      {onNavigateToDesigner && (
+        <div className="bg-gradient-to-r from-amber-50 via-rose-50 to-amber-50 border border-amber-200/80 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-3.5 text-center sm:text-left">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-[#881337] text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Sparkles className="w-6 h-6 text-amber-200 animate-pulse" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#881337] mb-0.5">
+                <span>Interactive Cake Builder</span>
+              </div>
+              <h3 className="font-serif text-lg font-bold text-[#2A1E17]">
+                Design Your Own Cake
+              </h3>
+              <p className="text-xs text-stone-600 mt-0.5 max-w-xl">
+                Choose custom shape, sponge, multi-layer filling, frosting colours, festive toppings, and personalized piped messages with live 3D & top-down preview!
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onNavigateToDesigner}
+            className="px-6 py-3 bg-[#881337] hover:bg-[#6e0f2c] text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm hover:shadow flex items-center gap-2 shrink-0 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-amber-200" />
+            <span>Launch Cake Designer</span>
+          </button>
+        </div>
+      )}
 
       {/* Category Pills Slider */}
       <CategorySlider

@@ -1,3 +1,5 @@
+import { CustomCakeDesign } from './cakeDesigner';
+
 export interface CartItem {
   id: string; // unique cart item key (cakeId + size + flavour + eggless + message)
   cakeId: string;
@@ -14,6 +16,7 @@ export interface CartItem {
   deliveryTimeSlot: string;
   unitPrice: number;
   quantity: number;
+  customCakeDesign?: CustomCakeDesign;
 }
 
 export interface CartTotals {

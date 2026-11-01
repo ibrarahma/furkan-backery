@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { BakeryOrder, OrderStatus } from '../types/order';
 import { BakeryConfig } from '../config/bakeryConfig';
-import { findOrderByTrackInfo, getOrders } from '../services/orderService';
+import { findOrderByTrackInfo } from '../services/orderService';
 import { CakeIllustration } from '../components/common/CakeIllustration';
 
 interface TrackOrderPageProps {
@@ -41,15 +41,16 @@ export function TrackOrderPage({ config, initialOrderId = '' }: TrackOrderPagePr
   useEffect(() => {
     if (initialOrderId) {
       setOrderIdInput(initialOrderId);
-      const found = findOrderByTrackInfo(initialOrderId, '');
-      if (found) {
-        setSearchedOrder(found);
-        setHasSearched(true);
-      }
+      findOrderByTrackInfo(initialOrderId, '').then((found) => {
+        if (found) {
+          setSearchedOrder(found);
+          setHasSearched(true);
+        }
+      });
     }
   }, [initialOrderId]);
 
-  const handleTrackSubmit = (e: React.FormEvent) => {
+  const handleTrackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -58,30 +59,22 @@ export function TrackOrderPage({ config, initialOrderId = '' }: TrackOrderPagePr
       return;
     }
 
-    const order = findOrderByTrackInfo(orderIdInput.trim(), phoneInput.trim());
-    setHasSearched(true);
-
-    if (order) {
-      setSearchedOrder(order);
-      setErrorMsg('');
-    } else {
-      setSearchedOrder(null);
-      setErrorMsg(
-        'No order found matching this Order ID and phone number. Please check the spelling or contact support.'
-      );
-    }
-  };
-
-  // Demo auto-fill helper for user testing
-  const handleTryDemoOrder = () => {
-    const orders = getOrders();
-    if (orders.length > 0) {
-      const demo = orders[0];
-      setOrderIdInput(demo.orderId);
-      setPhoneInput(demo.customer.mobileNumber);
-      setSearchedOrder(demo);
+    try {
+      const order = await findOrderByTrackInfo(orderIdInput.trim(), phoneInput.trim());
       setHasSearched(true);
-      setErrorMsg('');
+
+      if (order) {
+        setSearchedOrder(order);
+        setErrorMsg('');
+      } else {
+        setSearchedOrder(null);
+        setErrorMsg(
+          'No order found matching this Order ID and phone number. Please check the spelling or contact support.'
+        );
+      }
+    } catch {
+      setSearchedOrder(null);
+      setErrorMsg('Unable to check order tracking at this time. Please try again later.');
     }
   };
 
@@ -160,21 +153,13 @@ export function TrackOrderPage({ config, initialOrderId = '' }: TrackOrderPagePr
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <div className="pt-2">
             <button
               type="submit"
-              className="flex-1 py-3 bg-[#881337] hover:bg-[#6e0f2c] text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 bg-[#881337] hover:bg-[#6e0f2c] text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
             >
               <Search className="w-4 h-4" />
               <span>Find My Order</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleTryDemoOrder}
-              className="py-3 px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-xs rounded-xl transition-colors cursor-pointer"
-            >
-              Try with Demo Order
             </button>
           </div>
         </form>

@@ -27,11 +27,15 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderSuccessPage } from './pages/OrderSuccessPage';
 import { TrackOrderPage } from './pages/TrackOrderPage';
 import { CustomCakePage } from './pages/CustomCakePage';
+import { CakeDesignerPage } from './pages/CakeDesignerPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { LegalPage } from './pages/LegalPages';
+import { adminAuthService } from './services/adminAuthService';
+import { fetchCakes } from './services/productService';
+import { fetchBakeryConfig } from './config/bakeryConfig';
 
 export default function App() {
   const [config, setConfig] = useState<BakeryConfig>(() => getBakeryConfig());
@@ -40,11 +44,22 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All Cakes');
   const [lastPlacedOrder, setLastPlacedOrder] = useState<BakeryOrder | null>(null);
   const [trackTargetOrderId, setTrackTargetOrderId] = useState<string>('');
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
-    return sessionStorage.getItem('sweetcrumbs_admin_auth') === 'true';
-  });
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
 
   const [cakes, setCakes] = useState<Cake[]>(() => getCakes());
+
+  // Verify server-side session and fetch latest data on startup
+  useEffect(() => {
+    fetchBakeryConfig().then((cfg) => {
+      if (cfg) setConfig(cfg);
+    });
+    fetchCakes().then((c) => {
+      if (c && c.length > 0) setCakes(c);
+    });
+    adminAuthService.verifySession().then((isValid) => {
+      setIsAdminLoggedIn(isValid);
+    });
+  }, []);
 
   // Listen to popstate or navigation
   const navigate = (page: string, params?: Record<string, string>) => {
@@ -56,6 +71,12 @@ export default function App() {
     }
     if (params?.orderId) {
       setTrackTargetOrderId(params.orderId);
+    }
+    if (page === 'admin' && !isAdminLoggedIn) {
+      // Re-verify session in case state changed
+      adminAuthService.verifySession().then((isValid) => {
+        setIsAdminLoggedIn(isValid);
+      });
     }
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -75,13 +96,12 @@ export default function App() {
 
   const handleAdminLogin = () => {
     setIsAdminLoggedIn(true);
-    sessionStorage.setItem('sweetcrumbs_admin_auth', 'true');
     setCurrentPage('admin');
   };
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    await adminAuthService.logout();
     setIsAdminLoggedIn(false);
-    sessionStorage.removeItem('sweetcrumbs_admin_auth');
     setCurrentPage('home');
   };
 
@@ -135,6 +155,7 @@ export default function App() {
                 selectedCategory={selectedCategory}
                 onSelectCategory={setSelectedCategory}
                 onSelectCake={handleSelectCake}
+                onNavigateToDesigner={() => navigate('cake-designer')}
               />
             )}
 
@@ -184,6 +205,14 @@ export default function App() {
             {currentPage === 'custom-cake' && (
               <CustomCakePage
                 config={config}
+                onNavigateToMenu={() => navigate('menu')}
+              />
+            )}
+
+            {currentPage === 'cake-designer' && (
+              <CakeDesignerPage
+                config={config}
+                onNavigateToCart={() => navigate('cart')}
                 onNavigateToMenu={() => navigate('menu')}
               />
             )}

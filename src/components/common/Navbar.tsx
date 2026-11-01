@@ -17,6 +17,7 @@ export function Navbar({ config, currentPage, onNavigate, isAdminLoggedIn }: Nav
   const navLinks = [
     { label: 'Home', page: 'home' },
     { label: 'Cake Menu', page: 'menu' },
+    { label: 'Cake Designer', page: 'cake-designer' },
     { label: 'Custom Cakes', page: 'custom-cake' },
     { label: 'Track Order', page: 'track-order' },
     { label: 'About Us', page: 'about' },
@@ -38,7 +39,7 @@ export function Navbar({ config, currentPage, onNavigate, isAdminLoggedIn }: Nav
             Freshly Baked Every Morning in {config.city} · Same-Day Delivery Available
           </span>
           <span className="sm:hidden mx-auto text-stone-200">
-            Hyderabad's Premier Artisanal Bakery
+            {config.city}'s Premier Artisanal Bakery
           </span>
           <div className="hidden sm:flex items-center gap-4 text-xs text-amber-200/90 font-medium">
             <span>Call: {config.phone}</span>
@@ -61,7 +62,7 @@ export function Navbar({ config, currentPage, onNavigate, isAdminLoggedIn }: Nav
         </button>
 
         {/* Zone 2: Clean text nav links */}
-        <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-stone-700">
+        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-stone-700">
           {navLinks.map((link) => {
             const isActive = currentPage === link.page;
             return (
@@ -83,8 +84,18 @@ export function Navbar({ config, currentPage, onNavigate, isAdminLoggedIn }: Nav
           })}
         </nav>
 
-        {/* Zone 3: Actions (Search, Cart & Admin) */}
-        <div className="flex items-center gap-3">
+        {/* Zone 3: Actions (Design Cake, Search, Cart & Admin) */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Direct "Design Cake" Button */}
+          <button
+            onClick={() => handleNavClick('cake-designer')}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#881337] hover:bg-[#6e0f2c] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer shadow-xs"
+            title="Design Your Own Cake"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>Design Cake</span>
+          </button>
+
           {/* Quick Menu / Search */}
           <button
             onClick={() => handleNavClick('menu')}

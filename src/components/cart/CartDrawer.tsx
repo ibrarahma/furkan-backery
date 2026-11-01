@@ -3,6 +3,7 @@ import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, Check, Sparkles }
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { CakeIllustration } from '../common/CakeIllustration';
+import { CakePreview } from '../cakeDesigner/CakePreview';
 import { getBakeryConfig } from '../../config/bakeryConfig';
 
 interface CartDrawerProps {
@@ -135,22 +136,34 @@ export function CartDrawer({ onProceedToCheckout, onNavigateToMenu }: CartDrawer
                   className="bg-white rounded-xl p-3.5 border border-[#EADBCE] shadow-xs flex gap-3 relative"
                 >
                   {/* Thumbnail */}
-                  <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-[#EADBCE]">
-                    <CakeIllustration
-                      name={item.cakeName}
-                      themeColor={item.themeColor}
-                      imageUrl={item.imageUrl}
-                      aspectRatio="1/1"
-                      showBadge={false}
-                    />
+                  <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-[#EADBCE] bg-[#FAF7F2] flex items-center justify-center">
+                    {item.customCakeDesign ? (
+                      <CakePreview design={item.customCakeDesign} className="w-full h-full scale-90" />
+                    ) : (
+                      <CakeIllustration
+                        name={item.cakeName}
+                        themeColor={item.themeColor}
+                        imageUrl={item.imageUrl}
+                        aspectRatio="1/1"
+                        showBadge={false}
+                      />
+                    )}
                   </div>
 
                   {/* Details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-1">
-                      <h4 className="font-serif text-sm font-semibold text-[#2A1E17] truncate">
-                        {item.cakeName}
-                      </h4>
+                      <div className="min-w-0">
+                        {item.customCakeDesign && (
+                          <span className="text-[10px] uppercase font-bold text-[#881337] flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Custom Design
+                          </span>
+                        )}
+                        <h4 className="font-serif text-sm font-semibold text-[#2A1E17] truncate">
+                          {item.cakeName}
+                        </h4>
+                      </div>
                       <button
                         onClick={() => removeItem(item.id)}
                         className="text-stone-400 hover:text-rose-600 p-1 rounded transition-colors shrink-0"
@@ -174,6 +187,11 @@ export function CartDrawer({ onProceedToCheckout, onNavigateToMenu }: CartDrawer
                       {item.cakeMessage && (
                         <p className="italic text-stone-600 line-clamp-1">
                           "{item.cakeMessage}"
+                        </p>
+                      )}
+                      {item.customCakeDesign && item.customCakeDesign.decorations.length > 0 && (
+                        <p className="text-[10px] text-stone-500 truncate">
+                          Toppings: {item.customCakeDesign.decorations.map((d) => d.replace(/_/g, ' ')).join(', ')}
                         </p>
                       )}
                     </div>

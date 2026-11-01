@@ -5,17 +5,20 @@
  * bakery details, delivery rates, contact info, and business hours.
  */
 
+import { adminAuthService } from '../services/adminAuthService';
+
 export interface BakeryConfig {
-   businessName: "FURKAN Cake and Bakery Shop",
-city: "korba",
-state: "ChattisGhar",
-phone: "+91 7007802157",
-whatsappNumber: "917007802157",
-displayWhatsapp: "+91 7007802157",
-email: "ibrarahmadansare@gmail.com",
-address: "Shop No. 12, Main Road",
-landmark: "Near korba",
-pincode: "500001",
+  businessName: string;
+  tagline: string;
+  city: string;
+  state: string;
+  phone: string;
+  whatsappNumber: string; // international digits without + or spaces for wa.me links
+  displayWhatsapp: string;
+  email: string;
+  address: string;
+  landmark: string;
+  pincode: string;
   instagramUrl: string;
   facebookUrl: string;
   deliveryCharges: number;
@@ -33,19 +36,19 @@ pincode: "500001",
 }
 
 export const defaultBakeryConfig: BakeryConfig = {
-  businessName: "Sweet Crumbs Bakery",
+  businessName: "FURKAN Cake and Bakery Shop",
   tagline: "Made with Love, Baked for You",
-  city: "Hyderabad",
-  state: "Telangana",
-  phone: "+91 98765 43210",
-  whatsappNumber: "919876543210", // wa.me format
-  displayWhatsapp: "+91 98765 43210",
-  email: "hello@sweetcrumbsbakery.com",
-  address: "Plot 42, Road No. 12, Banjara Hills",
-  landmark: "Near City Center Mall",
-  pincode: "500034",
-  instagramUrl: "https://instagram.com/sweetcrumbsbakery",
-  facebookUrl: "https://facebook.com/sweetcrumbsbakery",
+  city: "Korba",
+  state: "Chhattisgarh",
+  phone: "+91 7007802157",
+  whatsappNumber: "917007802157", // wa.me format
+  displayWhatsapp: "+91 7007802157",
+  email: "ibrarahmadansare@gmail.com",
+  address: "Shop No. 12, Main Road",
+  landmark: "Near Korba",
+  pincode: "500001",
+  instagramUrl: "https://instagram.com/furkancakeandbakery",
+  facebookUrl: "https://facebook.com/furkancakeandbakery",
   deliveryCharges: 80,
   freeDeliveryThreshold: 999,
   minimumOrder: 350,
@@ -58,38 +61,53 @@ export const defaultBakeryConfig: BakeryConfig = {
   ratingScore: 4.9,
   totalReviewsCount: 1420,
   servingAreas: [
-    "Banjara Hills",
-    "Jubilee Hills",
-    "Madhapur",
-    "Gachibowli",
-    "Hitec City",
-    "Kondapur",
-    "Kukatpally",
-    "Secunderabad",
-    "Somajiguda",
-    "Begumpet"
+    "Main Road",
+    "Transport Nagar",
+    "TP Nagar",
+    "Niharika",
+    "Kosabadi",
+    "Rampur",
+    "Balco Nagar",
+    "Darri",
+    "CSEB Colony",
+    "Korba City"
   ]
 };
 
-const CONFIG_STORAGE_KEY = "sweetcrumbs_bakery_config_v1";
+let activeConfig: BakeryConfig = defaultBakeryConfig;
 
-export function getBakeryConfig(): BakeryConfig {
-  if (typeof window === "undefined") return defaultBakeryConfig;
+export async function fetchBakeryConfig(): Promise<BakeryConfig> {
   try {
-    const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
-    if (saved) {
-      return { ...defaultBakeryConfig, ...JSON.parse(saved) };
+    const res = await fetch('/api/config');
+    if (!res.ok) return activeConfig;
+    const data = await res.json();
+    if (data && data.businessName) {
+      activeConfig = data;
     }
-  } catch (e) {
-    console.warn("Failed to read bakery config from localStorage", e);
+    return activeConfig;
+  } catch (err) {
+    console.error('Error fetching bakery config:', err);
+    return activeConfig;
   }
-  return defaultBakeryConfig;
 }
 
-export function saveBakeryConfig(config: BakeryConfig): void {
+export function getBakeryConfig(): BakeryConfig {
+  return activeConfig;
+}
+
+export async function saveBakeryConfig(config: BakeryConfig): Promise<BakeryConfig> {
+  activeConfig = config;
   try {
-    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
-  } catch (e) {
-    console.error("Failed to save bakery config", e);
+    const res = await fetch('/api/admin/config', {
+      method: 'PUT',
+      headers: adminAuthService.getAuthHeaders(),
+      body: JSON.stringify(config)
+    });
+    if (!res.ok) {
+      console.warn('Config saved locally, server update responded with status', res.status);
+    }
+  } catch (err) {
+    console.error('Error saving bakery config to server:', err);
   }
+  return config;
 }

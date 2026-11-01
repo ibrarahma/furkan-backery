@@ -1,211 +1,174 @@
 import { BakeryOrder, OrderStatus, PaymentStatus, CustomCakeInquiry } from '../types/order';
 import { BakeryConfig } from '../config/bakeryConfig';
-import { storage } from './storage';
+import { adminAuthService } from './adminAuthService';
 
-const ORDERS_STORAGE_KEY = 'sweetcrumbs_orders_v1';
-const INQUIRIES_STORAGE_KEY = 'sweetcrumbs_custom_inquiries_v1';
-
-// Seed sample orders for realistic demo dashboard
-const INITIAL_DEMO_ORDERS: BakeryOrder[] = [
-  {
-    orderId: 'SCB-20261008-4821',
-    createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    customer: {
-      fullName: 'Priya Sharma',
-      mobileNumber: '+91 9693650653',
-      mobileNumber: '+91 7007802157',
-      whatsappNumber: '+91 9693650653',
-      email: 'ibrarahmadansare@gmail.com',
-      deliveryAddress: 'Flat 402, Lotus Grandeur, Road 10, Banjara Hills',
-      landmark: 'Opposite Park View Hotel',
-      city: 'Hyderabad',
-      pincode: '500034'
-    },
-    items: [
-      {
-        id: 'item-demo-1',
-        cakeId: 'cake-01',
-        cakeName: 'Classic Chocolate Truffle Cake',
-        category: 'Chocolate Cakes',
-        themeColor: '#3E2723',
-        size: '1 kg',
-        flavour: 'Belgian Dark Chocolate',
-        isEggless: true,
-        cakeMessage: 'Happy 25th Birthday Rahul!',
-        specialInstructions: 'Please include 4 golden sparkler candles',
-        deliveryDate: '2026-10-08',
-        deliveryTimeSlot: '05:00 PM - 08:00 PM',
-        unitPrice: 1017,
-        quantity: 1
-      }
-    ],
-    deliveryDate: '2026-10-08',
-    deliveryTimeSlot: '05:00 PM - 08:00 PM',
-    specialInstructions: 'Ring bell twice, do not leave in lobby.',
-    subtotal: 1017,
-    deliveryCharge: 0,
-    discount: 101,
-    couponCode: 'WELCOME10',
-    grandTotal: 916,
-    paymentMethod: 'UPI / Advance Payment',
-    paymentStatus: 'Advance Paid',
-    status: 'Preparing',
-    statusHistory: [
-      { status: 'Pending', timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(), note: 'Order received via online website' },
-      { status: 'Confirmed', timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(), note: 'WhatsApp order confirmation verified' },
-      { status: 'Preparing', timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), note: 'Pastry chef baking fresh sponge layer' }
-    ]
-  },
-  {
-    orderId: 'SCB-20261007-3104',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
-    customer: {
-      fullName: 'Mohd Irfan',
-      mobileNumber: '+91 91234 56789',
-      whatsappNumber: '+91 91234 56789',
-      email: 'irfan.hyd@example.com',
-      deliveryAddress: 'Villa 18, Whispering Meadows, Gachibowli',
-      landmark: 'Near Financial District Arch',
-      city: 'Hyderabad',
-      pincode: '500032'
-    },
-    items: [
-      {
-        id: 'item-demo-2',
-        cakeId: 'cake-02',
-        cakeName: 'Royal Red Velvet Cream Cheese Cake',
-        category: 'Birthday Cakes',
-        themeColor: '#881337',
-        size: '1.5 kg',
-        flavour: 'Signature Cream Cheese',
-        isEggless: false,
-        cakeMessage: 'Happy Anniversary Mom & Dad',
-        specialInstructions: 'Neat calligraphy please',
-        deliveryDate: '2026-10-07',
-        deliveryTimeSlot: '01:00 PM - 04:00 PM',
-        unitPrice: 1755,
-        quantity: 1
-      }
-    ],
-    deliveryDate: '2026-10-07',
-    deliveryTimeSlot: '01:00 PM - 04:00 PM',
-    subtotal: 1755,
-    deliveryCharge: 0,
-    discount: 0,
-    grandTotal: 1755,
-    paymentMethod: 'Cash on Delivery / Pay at Store',
-    paymentStatus: 'Paid',
-    status: 'Delivered',
-    statusHistory: [
-      { status: 'Pending', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString() },
-      { status: 'Confirmed', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
-      { status: 'Preparing', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 22).toISOString() },
-      { status: 'Ready', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 21).toISOString() },
-      { status: 'Out for Delivery', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString() },
-      { status: 'Delivered', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 19).toISOString() }
-    ]
-  }
-];
+// In-memory cache for orders fetched by admin
+let cachedOrders: BakeryOrder[] = [];
+let cachedInquiries: CustomCakeInquiry[] = [];
 
 export function generateOrderId(): string {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-  // Random 4 digit number
   const rand = Math.floor(1000 + Math.random() * 9000);
   return `SCB-${year}${month}${day}-${rand}`;
 }
 
-export function getOrders(): BakeryOrder[] {
-  const orders = storage.get<BakeryOrder[] | null>(ORDERS_STORAGE_KEY, null);
-  if (orders && Array.isArray(orders)) {
-    return orders;
+/**
+ * Fetch all orders from the secure server API (Protected by server-side admin authentication)
+ */
+export async function fetchOrders(): Promise<BakeryOrder[]> {
+  try {
+    const res = await fetch('/api/admin/orders', {
+      headers: adminAuthService.getAuthHeaders()
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        adminAuthService.clearToken();
+      }
+      return cachedOrders;
+    }
+
+    const data = await res.json();
+    cachedOrders = data;
+    return data;
+  } catch (err) {
+    console.error('Error fetching admin orders:', err);
+    return cachedOrders;
   }
-  // Initialize with realistic seed
-  storage.set(ORDERS_STORAGE_KEY, INITIAL_DEMO_ORDERS);
-  return INITIAL_DEMO_ORDERS;
 }
 
-export function getOrderById(orderId: string): BakeryOrder | undefined {
-  const orders = getOrders();
-  const cleaned = orderId.trim().toUpperCase();
-  return orders.find((o) => o.orderId.toUpperCase() === cleaned);
+/**
+ * Synchronous accessor that returns currently loaded admin orders
+ */
+export function getOrders(): BakeryOrder[] {
+  return cachedOrders;
 }
 
-export function findOrderByTrackInfo(orderId: string, phone: string): BakeryOrder | undefined {
-  const orders = getOrders();
-  const targetId = orderId.trim().toUpperCase();
-  const targetPhone = phone.replace(/\D/g, ''); // strip non-digits
+/**
+ * Customer order search by Order ID and Phone number (Privacy-preserving server verification)
+ */
+export async function findOrderByTrackInfo(orderId: string, phone: string): Promise<BakeryOrder | null> {
+  try {
+    const res = await fetch('/api/orders/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: orderId.trim(), phone: phone.trim() })
+    });
 
-  return orders.find((o) => {
-    const matchId = o.orderId.toUpperCase() === targetId;
-    if (!matchId) return false;
-    const cleanOrderPhone = o.customer.mobileNumber.replace(/\D/g, '');
-    const cleanOrderWa = o.customer.whatsappNumber.replace(/\D/g, '');
-    // If phone provided, ensure match or at least last 10 digits match
-    if (!targetPhone) return true;
-    return (
-      cleanOrderPhone.endsWith(targetPhone.slice(-10)) ||
-      cleanOrderWa.endsWith(targetPhone.slice(-10))
-    );
-  });
+    if (!res.ok) {
+      return null;
+    }
+
+    const data = await res.json();
+    return data.order || null;
+  } catch (err) {
+    console.error('Error tracking order:', err);
+    return null;
+  }
 }
 
-export function createOrder(newOrder: BakeryOrder): BakeryOrder {
-  const orders = getOrders();
-  const updated = [newOrder, ...orders];
-  storage.set(ORDERS_STORAGE_KEY, updated);
-  return newOrder;
+/**
+ * Customer creates an order (Saves to server database, never exposes other customer data)
+ */
+export async function createOrder(newOrder: BakeryOrder): Promise<BakeryOrder> {
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newOrder)
+    });
+
+    if (!res.ok) {
+      console.warn('Server order submission failed, using local instance');
+      return newOrder;
+    }
+
+    const data = await res.json();
+    return data.order || newOrder;
+  } catch (err) {
+    console.error('Network error creating order:', err);
+    return newOrder;
+  }
 }
 
-export function updateOrderStatus(orderId: string, status: OrderStatus, note?: string): BakeryOrder | null {
-  const orders = getOrders();
-  const idx = orders.findIndex((o) => o.orderId === orderId);
-  if (idx === -1) return null;
+/**
+ * Admin: Update order status via server API (Strictly protected)
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+  note?: string
+): Promise<BakeryOrder | null> {
+  try {
+    const res = await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}/status`, {
+      method: 'PATCH',
+      headers: adminAuthService.getAuthHeaders(),
+      body: JSON.stringify({ status, note })
+    });
 
-  const current = orders[idx];
-  const historyEntry = {
-    status,
-    timestamp: new Date().toISOString(),
-    note: note || `Status updated to ${status}`
-  };
+    if (!res.ok) {
+      return null;
+    }
 
-  const updated: BakeryOrder = {
-    ...current,
-    status,
-    updatedAt: new Date().toISOString(),
-    statusHistory: [...(current.statusHistory || []), historyEntry]
-  };
-
-  orders[idx] = updated;
-  storage.set(ORDERS_STORAGE_KEY, orders);
-  return updated;
+    const updated = await res.json();
+    cachedOrders = cachedOrders.map((o) => (o.orderId === orderId ? updated : o));
+    return updated;
+  } catch (err) {
+    console.error('Error updating order status:', err);
+    return null;
+  }
 }
 
-export function updatePaymentStatus(orderId: string, paymentStatus: PaymentStatus): BakeryOrder | null {
-  const orders = getOrders();
-  const idx = orders.findIndex((o) => o.orderId === orderId);
-  if (idx === -1) return null;
+/**
+ * Admin: Update payment status via server API (Strictly protected)
+ */
+export async function updatePaymentStatus(
+  orderId: string,
+  paymentStatus: PaymentStatus
+): Promise<BakeryOrder | null> {
+  try {
+    const res = await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}/payment`, {
+      method: 'PATCH',
+      headers: adminAuthService.getAuthHeaders(),
+      body: JSON.stringify({ paymentStatus })
+    });
 
-  const updated: BakeryOrder = {
-    ...orders[idx],
-    paymentStatus,
-    updatedAt: new Date().toISOString()
-  };
+    if (!res.ok) {
+      return null;
+    }
 
-  orders[idx] = updated;
-  storage.set(ORDERS_STORAGE_KEY, orders);
-  return updated;
+    const updated = await res.json();
+    cachedOrders = cachedOrders.map((o) => (o.orderId === orderId ? updated : o));
+    return updated;
+  } catch (err) {
+    console.error('Error updating payment status:', err);
+    return null;
+  }
 }
 
-export function deleteOrder(orderId: string): boolean {
-  const orders = getOrders();
-  const filtered = orders.filter((o) => o.orderId !== orderId);
-  storage.set(ORDERS_STORAGE_KEY, filtered);
-  return true;
+/**
+ * Admin: Delete order via server API (Strictly protected)
+ */
+export async function deleteOrder(orderId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
+      method: 'DELETE',
+      headers: adminAuthService.getAuthHeaders()
+    });
+
+    if (!res.ok) {
+      return false;
+    }
+
+    cachedOrders = cachedOrders.filter((o) => o.orderId !== orderId);
+    return true;
+  } catch (err) {
+    console.error('Error deleting order:', err);
+    return false;
+  }
 }
 
 /**
@@ -216,6 +179,28 @@ export function generateWhatsAppOrderMessage(order: BakeryOrder, config: BakeryC
   const itemsText = order.items
     .map((item, idx) => {
       const prefix = order.items.length > 1 ? `[Item #${idx + 1}]\n` : '';
+
+      if (item.customCakeDesign) {
+        const cd = item.customCakeDesign;
+        const decorList = cd.decorations.length > 0
+          ? cd.decorations
+              .map((d) => d.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()))
+              .join(', ')
+          : 'None';
+
+        return `${prefix}*CUSTOM CAKE ORDER*
+Shape: ${cd.shape}
+Weight: ${cd.size}
+Sponge: ${cd.sponge}
+Filling: ${cd.filling}
+Frosting: ${cd.frostingColorName} ${cd.frosting}
+Decorations: ${decorList}
+Cake Message: ${cd.cakeMessage ? `"${cd.cakeMessage}"` : 'None'}
+Dietary: ${item.isEggless ? '100% Eggless' : 'Contains Egg'}
+Quantity: ${item.quantity}
+Item Price: ${config.currency}${item.unitPrice * item.quantity}${item.specialInstructions ? `\nSpecial Notes: ${item.specialInstructions}` : ''}`;
+      }
+
       return `${prefix}Cake: ${item.cakeName}
 Size: ${item.size}
 Flavour: ${item.flavour}
@@ -259,16 +244,49 @@ export function getWhatsAppOrderUrl(order: BakeryOrder, config: BakeryConfig): s
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
 
-// Custom Cake Inquiries
-export function getCustomCakeInquiries(): CustomCakeInquiry[] {
-  return storage.get<CustomCakeInquiry[]>(INQUIRIES_STORAGE_KEY, []);
+// ---------------- CUSTOM CAKE INQUIRIES ---------------- //
+
+export async function fetchCustomCakeInquiries(): Promise<CustomCakeInquiry[]> {
+  try {
+    const res = await fetch('/api/admin/inquiries', {
+      headers: adminAuthService.getAuthHeaders()
+    });
+
+    if (!res.ok) {
+      return cachedInquiries;
+    }
+
+    const data = await res.json();
+    cachedInquiries = data;
+    return data;
+  } catch (err) {
+    console.error('Error fetching inquiries:', err);
+    return cachedInquiries;
+  }
 }
 
-export function saveCustomCakeInquiry(inquiry: CustomCakeInquiry): CustomCakeInquiry {
-  const current = getCustomCakeInquiries();
-  const updated = [inquiry, ...current];
-  storage.set(INQUIRIES_STORAGE_KEY, updated);
-  return inquiry;
+export function getCustomCakeInquiries(): CustomCakeInquiry[] {
+  return cachedInquiries;
+}
+
+export async function saveCustomCakeInquiry(inquiry: CustomCakeInquiry): Promise<CustomCakeInquiry> {
+  try {
+    const res = await fetch('/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inquiry)
+    });
+
+    if (!res.ok) {
+      return inquiry;
+    }
+
+    const data = await res.json();
+    return data.inquiry || inquiry;
+  } catch (err) {
+    console.error('Error submitting inquiry:', err);
+    return inquiry;
+  }
 }
 
 export function generateWhatsAppCustomCakeMessage(inquiry: CustomCakeInquiry, config: BakeryConfig): string {

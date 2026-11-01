@@ -99,7 +99,7 @@ export function CheckoutPage({ config, onBackToCart, onOrderSuccess }: CheckoutP
     return Object.keys(errors).length === 0;
   };
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (items.length === 0) {
@@ -157,7 +157,7 @@ export function CheckoutPage({ config, onBackToCart, onOrderSuccess }: CheckoutP
       };
 
       // Save order via service
-      createOrder(newOrder);
+      const savedOrder = await createOrder(newOrder);
 
       // Clear the cart
       clearCart();
@@ -166,7 +166,7 @@ export function CheckoutPage({ config, onBackToCart, onOrderSuccess }: CheckoutP
       showToast('Order Received!', `Order ${orderId} registered successfully.`, 'success');
 
       // Handover to Success view
-      onOrderSuccess(newOrder);
+      onOrderSuccess(savedOrder || newOrder);
     } catch (err) {
       console.error('Failed to create order', err);
       showToast('Order failed', 'Could not save order. Please try again.', 'error');
@@ -498,6 +498,11 @@ export function CheckoutPage({ config, onBackToCart, onOrderSuccess }: CheckoutP
                     <p className="text-stone-500 text-[11px]">
                       {item.size} · {item.flavour} · Qty: {item.quantity}
                     </p>
+                    {item.customCakeDesign && item.customCakeDesign.decorations.length > 0 && (
+                      <p className="text-[10px] text-stone-500 truncate">
+                        Decorations: {item.customCakeDesign.decorations.map((d) => d.replace(/_/g, ' ')).join(', ')}
+                      </p>
+                    )}
                     {item.cakeMessage && (
                       <p className="text-stone-600 italic text-[11px] truncate">
                         "{item.cakeMessage}"

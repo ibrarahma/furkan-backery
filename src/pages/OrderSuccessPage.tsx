@@ -150,6 +150,11 @@ export function OrderSuccessPage({
                     <p className="text-stone-500 text-[11px]">
                       {item.size} · {item.flavour} · {item.isEggless ? 'Eggless' : 'With Egg'} · Qty: {item.quantity}
                     </p>
+                    {item.customCakeDesign && item.customCakeDesign.decorations.length > 0 && (
+                      <p className="text-[10px] text-stone-500 truncate">
+                        Decorations: {item.customCakeDesign.decorations.map((d) => d.replace(/_/g, ' ')).join(', ')}
+                      </p>
+                    )}
                     {item.cakeMessage && (
                       <p className="text-[#881337] italic text-[11px] truncate">
                         "{item.cakeMessage}"

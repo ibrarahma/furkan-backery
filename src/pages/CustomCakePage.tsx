@@ -93,7 +93,7 @@ export function CustomCakePage({ config, onNavigateToMenu }: CustomCakePageProps
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!customerName.trim() || !phone.trim() || !theme.trim()) {
@@ -127,7 +127,7 @@ export function CustomCakePage({ config, onNavigateToMenu }: CustomCakePageProps
       status: 'Inquiry Received'
     };
 
-    saveCustomCakeInquiry(inquiry);
+    await saveCustomCakeInquiry(inquiry);
     setSubmittedInquiry(inquiry);
     showToast('Custom Cake Request Sent!', 'Now tap to send on WhatsApp for consultation.', 'success');
   };
